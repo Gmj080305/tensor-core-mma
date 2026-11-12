@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  model-rtl:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y verilator yosys cmake g++ python3
+      - name: Model unit tests
+        run: make test
+      - name: RTL lint
+        run: make lint
+      - name: RTL regression (all configs) + gate-level simulation
+        run: make sim OPS=50000
+      - name: Probe/fit self-test
+        run: make selftest
+      - name: Synthesis sweep (quick)
+        run: python3 syn/yosys/sweep.py --quick --out /tmp/results.md && cat /tmp/results.md

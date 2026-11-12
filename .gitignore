@@ -1,0 +1,11 @@
+model/build/
+cuda/build/
+tb/verilator/obj_*/
+syn/orfs/gen/
+results/
+probes/*.bin
+probes/*.out
+__pycache__/
+*.o
+*.vcd
+*.fst
