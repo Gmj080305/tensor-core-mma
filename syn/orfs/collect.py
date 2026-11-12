@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Collect timing / area / power from finished ORFS runs into a Markdown table.
 
-Looks in $ORFS/flow/{logs,reports}/<pdk>/<design>/<variant>/. It first reads
+Looks in <work>/{logs,reports}/<pdk>/<design>/<variant>/, where <work> is
+ORFS's WORK_HOME (or $ORFS/flow when WORK_HOME is not set). It first reads
 the metrics JSON files ORFS writes (keys such as finish__timing__setup__ws,
 finish__design__instance__area, finish__power__total); if none are found it
 falls back to parsing 6_finish.rpt. ORFS report formats change between
@@ -57,13 +58,13 @@ def from_report(report_dir):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--orfs", required=True)
+    ap.add_argument("--work", required=True, help="ORFS WORK_HOME (or $ORFS/flow)")
     ap.add_argument("--pdk", required=True)
     ap.add_argument("--design", default="tc_fda")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     unit = "ps" if a.pdk == "asap7" else "ns"
-    base = os.path.join(a.orfs, "flow")
+    base = a.work
     rows = []
     for rdir in sorted(glob.glob(os.path.join(base, "reports", a.pdk, a.design, "*"))):
         variant = os.path.basename(rdir)

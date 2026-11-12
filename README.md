@@ -46,10 +46,10 @@ Ampere as summing **8** products per fused block, so the default lane here is
 | GPU probe generator + hypothesis fitting tool | done: self-test recovers planted configurations |
 | Yosys area / logic-depth sweep | done: [syn/yosys/results.md](syn/yosys/results.md) |
 | CUDA probe runner and GEMM benchmark | compiled for sm_86, **not yet run on the GPU** |
-| OpenROAD (ASAP7 / Sky130) | flow configured, **not yet run** |
+| OpenROAD (ASAP7 / Sky130) | GitHub Actions workflow `pnr` (RTL-to-GDS in the ORFS Docker image), **first run pending** |
 
 The default numeric parameters are a hypothesis taken from the literature
-until `scripts/run_gpu_characterization.sh` confirms them on the RTX 3050.
+until `bash scripts/run_gpu_characterization.sh` confirms them on the RTX 3050.
 See [docs/04](docs/04_gpu_characterization.md).
 
 ## Quick start

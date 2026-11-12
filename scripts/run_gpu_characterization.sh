@@ -5,7 +5,7 @@
 #   3. run them through the tensor cores with WMMA and with mma.sync
 #   4. predict them with the model's default (hypothesis) configuration
 #   5. compare family by family, then search the parameter grid (tcmma fit)
-# Everything lands in results/. Usage: scripts/run_gpu_characterization.sh [ARCH]
+# Everything lands in results/. Usage: bash scripts/run_gpu_characterization.sh [ARCH]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ARCH="${1:-sm_86}"

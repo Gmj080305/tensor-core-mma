@@ -11,17 +11,18 @@
 | Yosys area/depth sweep | done | `syn/yosys/results.md` |
 | CUDA probe runner (WMMA + `mma.sync`) | written, compiled for sm_86 | **run on the RTX 3050** |
 | CUDA GEMM benchmark (naive, tiled, 2x WMMA, cuBLAS) | written, compiled for sm_86 | **run on the RTX 3050** |
-| OpenROAD ASAP7/Sky130 flow | configs + sweep script | **run with ORFS** |
+| OpenROAD ASAP7/Sky130 flow | GitHub Actions `pnr` workflow + local scripts | **trigger the workflow** |
 
 ## Remaining steps (about 3 weeks at 12 h/week)
 
 1. **Week 1: GPU.** Install CUDA on the laptop (WSL2 or Linux), then run
-   `scripts/run_gpu_characterization.sh`. If the default hypothesis matches,
+   `bash scripts/run_gpu_characterization.sh`. If the default hypothesis matches,
    record it. If not, follow doc 04 "If it does not match". Then run
    `make bench` and one Nsight Compute profile of `wmma_tiled`.
-2. **Week 2: physical design.** Run the ORFS sweep for stages 3-6 in ASAP7,
-   then the BF16 on/off and F=24/28 comparisons at the best depth. Fill in
-   `syn/orfs/results_asap7.md`.
+2. **Week 2: physical design.** Trigger Actions -> pnr (ASAP7). It runs
+   stages 3-6 plus the BF16-off and split-multiplier variants in parallel.
+   Read the summary table and open one GDS in KLayout. Repeat with a tighter
+   period if every configuration has positive slack.
 3. **Week 3: write-up.** Update the README numbers. Optional stretch: a
    SymbiYosys equivalence check RTL vs netlist, or implementing one
    model-only variant (e.g. RNE) in RTL.

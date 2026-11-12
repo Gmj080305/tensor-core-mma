@@ -40,7 +40,7 @@ probes:
 	python3 cuda/probes/gen_probes.py --out probes
 
 selftest: model
-	./scripts/selftest_fit.sh
+	bash scripts/selftest_fit.sh
 
 check: test lint sim selftest
 
@@ -48,7 +48,7 @@ cuda:
 	$(MAKE) -C cuda
 
 gpu:
-	./scripts/run_gpu_characterization.sh
+	bash scripts/run_gpu_characterization.sh
 
 bench: cuda
 	./cuda/build/gemm_bench

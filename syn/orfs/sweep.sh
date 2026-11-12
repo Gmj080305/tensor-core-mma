@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Pipeline-depth / configuration sweep through OpenROAD-flow-scripts (ORFS).
 #
-#   ORFS=~/OpenROAD-flow-scripts syn/orfs/sweep.sh [asap7|sky130hd] [stages...]
+#   ORFS=~/OpenROAD-flow-scripts bash syn/orfs/sweep.sh [asap7|sky130hd] [stages...]
 #
 # For each configuration this generates a wrapper (tc_fda_top) with fixed
 # parameters, runs the full ORFS flow (synth -> floorplan -> place -> CTS ->
 # route -> finish) as its own FLOW_VARIANT, and then collects worst slack,
 # design area and power with syn/orfs/collect.py into syn/orfs/results_<pdk>.md.
+# Set WORK_HOME to keep ORFS outputs outside the ORFS checkout (used by CI).
 #
 # Each run reports timing at TC_CLK_PERIOD; the achievable frequency is
 # 1 / (period - worst_slack). Expect roughly 10-40 minutes per run.
@@ -45,4 +46,6 @@ EOF
   make -C "$ORFS/flow" DESIGN_CONFIG="$HERE/$PDK/config.mk" TC_TOP_FILE="$TOP" FLOW_VARIANT="$VAR"
 done
 
-python3 "$HERE/collect.py" --orfs "$ORFS" --pdk "$PDK" --design tc_fda --out "$HERE/results_${PDK}.md"
+# ORFS writes logs/reports/results under WORK_HOME if set, else under flow/.
+python3 "$HERE/collect.py" --work "${WORK_HOME:-$ORFS/flow}" --pdk "$PDK" --design tc_fda \
+  --out "$HERE/results_${PDK}.md"

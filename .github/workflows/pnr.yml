@@ -1,0 +1,112 @@
+name: pnr
+
+# RTL-to-GDS for one FDA lane with OpenROAD-flow-scripts (Docker image
+# openroad/orfs). Each matrix entry is a separate runner doing the full flow:
+# Yosys synthesis -> floorplan -> placement -> CTS -> routing -> GDS.
+# Results: per-job artifacts (reports, logs, GDS) + a combined table in the
+# workflow summary.
+#
+# Run manually: Actions -> pnr -> Run workflow (choose PDK and clock period).
+# Also runs automatically when rtl/ or syn/orfs/ changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pdk:
+        description: "PDK"
+        type: choice
+        options: [asap7, sky130hd]
+        default: asap7
+      clk_period:
+        description: "Clock period (ps for asap7, ns for sky130hd); empty = config default"
+        required: false
+        default: ""
+  push:
+    paths:
+      - "rtl/**"
+      - "syn/orfs/**"
+      - ".github/workflows/pnr.yml"
+
+env:
+  ORFS_IMAGE: openroad/orfs:latest
+
+jobs:
+  pnr:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { stages: 3, bf16: 1, shared: 1 }
+          - { stages: 4, bf16: 1, shared: 1 }
+          - { stages: 5, bf16: 1, shared: 1 }
+          - { stages: 6, bf16: 1, shared: 1 }
+          - { stages: 5, bf16: 0, shared: 1 }   # FP16-only baseline
+          - { stages: 5, bf16: 1, shared: 0 }   # separate BF16 multiplier
+    env:
+      PDK: ${{ inputs.pdk || 'asap7' }}
+      PERIOD: ${{ inputs.clk_period }}
+      VARIANT: k8_f24_s${{ matrix.stages }}_m${{ matrix.shared }}_b${{ matrix.bf16 }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Pull ORFS image
+        run: docker pull "$ORFS_IMAGE" && docker image inspect "$ORFS_IMAGE" --format '{{.Created}}'
+
+      - name: RTL-to-GDS (${{ env.PDK }}, ${{ env.VARIANT }})
+        run: |
+          chmod -R a+rwX "$GITHUB_WORKSPACE"
+          PERIOD_ENV=()
+          if [ -n "$PERIOD" ]; then PERIOD_ENV=(-e "TC_CLK_PERIOD=$PERIOD"); fi
+          docker run --rm -u 0 \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -e ORFS=/OpenROAD-flow-scripts \
+            -e WORK_HOME=/work/orfs_work \
+            -e TC_BF16=${{ matrix.bf16 }} \
+            -e TC_SHARED=${{ matrix.shared }} \
+            "${PERIOD_ENV[@]}" \
+            "$ORFS_IMAGE" \
+            bash -c "source /OpenROAD-flow-scripts/env.sh && bash /work/syn/orfs/sweep.sh $PDK ${{ matrix.stages }}"
+
+      - name: Upload reports, logs and GDS
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pnr-${{ env.PDK }}-${{ env.VARIANT }}
+          path: |
+            syn/orfs/results_${{ env.PDK }}.md
+            orfs_work/reports/
+            orfs_work/logs/
+            orfs_work/results/**/6_final.gds
+            orfs_work/results/**/6_final.v
+            orfs_work/results/**/6_final.sdc
+          if-no-files-found: warn
+
+  summary:
+    needs: pnr
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: pnr-*
+          path: artifacts
+      - name: Combine result tables
+        run: |
+          {
+            echo "## OpenROAD results (one FDA lane)"
+            echo
+            first=1
+            for f in $(find artifacts -name 'results_*.md' | sort); do
+              if [ $first -eq 1 ]; then grep -E '^\| (variant|---)' "$f"; first=0; fi
+              grep -E '^\| k' "$f" || true
+            done
+            echo
+            echo "Achievable clock period = constraint period - worst slack."
+            echo "Download the artifacts for full reports and the final GDS."
+          } | tee summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pnr-summary
+          path: summary.md

@@ -17,7 +17,7 @@ have not been executed: no GPU was available while building the repository.
 ## One command
 
 ```bash
-scripts/run_gpu_characterization.sh sm_86
+bash scripts/run_gpu_characterization.sh sm_86
 ```
 
 The script runs these steps:
